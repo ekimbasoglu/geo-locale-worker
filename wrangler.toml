@@ -1,5 +1,5 @@
 name = "young-resonance-acc2"
-main = "src/worker.js"
+main = "src/worker.ts"
 workers_dev = true
 compatibility_date = "2025-07-08"
 
