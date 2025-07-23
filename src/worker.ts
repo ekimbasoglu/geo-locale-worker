@@ -43,45 +43,48 @@ export default {
 		if (req.method !== 'POST')
 			return new Response(JSON.stringify({ error: 'Use POST with JSON body' }), { status: 405, headers: baseHeaders });
 
-		let payload: { country?: string };
+		let payload: { continent?: string };
 		try {
 			payload = await req.json();
 		} catch {
 			return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: baseHeaders });
 		}
 
-		const code = payload.country?.trim().toUpperCase();
+		const code = payload.continent?.trim().toUpperCase();
 		if (!code || code.length !== 2)
-			return new Response(JSON.stringify({ error: 'Body must contain a 2-letter "country" code' }), { status: 422, headers: baseHeaders });
+			return new Response(JSON.stringify({ error: 'Body must contain a 2-letter "continent" code' }), {
+				status: 422,
+				headers: baseHeaders,
+			});
 
-		// GraphQL query
 		const query = /* GraphQL */ `
-			query ($code: ID!) {
-				country(code: $code) {
-					continent {
-						countries {
-							code
-							name
-						}
-					}
+			query CountriesByContinent($code: String!) {
+				countries(filter: { continent: { eq: $code } }) {
+					code
+					name
 				}
 			}
 		`;
+		const variables = { code };
 		const gqlRes = await fetch('https://countries.trevorblades.com/graphql/', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ query, variables: { code } }),
+			body: JSON.stringify({ query, variables }),
 		});
 
-		if (!gqlRes.ok) return new Response(JSON.stringify({ error: 'Upstream API failure' }), { status: 502, headers: baseHeaders });
+		const { data, errors } = await gqlRes.json();
+		if (errors) {
+			return new Response(JSON.stringify({ error: 'Upstream API error', details: errors }), { status: 502, headers: baseHeaders });
+		}
 
-		const { data } = await gqlRes.json();
+		if (!data?.countries?.length) {
+			return new Response(JSON.stringify({ error: `Continent "${code}" not found` }), { status: 404, headers: baseHeaders });
+		}
 
-		if (!data?.country)
-			return new Response(JSON.stringify({ error: `Country "${code}" not found` }), { status: 404, headers: baseHeaders });
-
-		const countries = data.country.continent.countries.filter((c: any) => c.code !== code).map(({ code, name }: any) => ({ code, name }));
-
-		return new Response(JSON.stringify({ countries }), { status: 200, headers: { ...baseHeaders, 'content-type': 'application/json' } });
+		const countries = data.countries;
+		return new Response(JSON.stringify({ countries }), {
+			status: 200,
+			headers: { ...baseHeaders, 'content-type': 'application/json' },
+		});
 	},
 };
