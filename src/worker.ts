@@ -55,7 +55,7 @@ export default {
 			return new Response(JSON.stringify({ error: 'Body must contain a 2-letter "country" code' }), { status: 422, headers: baseHeaders });
 
 		// GraphQL query
-		const query = /* GraphQL */ `
+		const query = /* GraphQL country → continent → countries */ `
 			query ($code: ID!) {
 				country(code: $code) {
 					continent {
