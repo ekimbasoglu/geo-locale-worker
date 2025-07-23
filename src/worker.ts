@@ -57,7 +57,7 @@ export default {
 				headers: baseHeaders,
 			});
 
-		const query = /* GraphQL */ `
+		const query = /* GraphQL continent → filter(continent) → countries */ `
 			query CountriesByContinent($code: String!) {
 				countries(filter: { continent: { eq: $code } }) {
 					code
